@@ -20,8 +20,9 @@ func ConnectDatabase() {
 		log.Fatal("❌ Ошибка подключения к базе данных:", err)
 	}
 
+	// ✅ Миграция с полем `Avatar`
 	if err := DB.AutoMigrate(&models.User{}); err != nil {
-		log.Fatal("❌ Ошибка при выполнении миграции:", err)
+		log.Fatal("❌ Ошибка при миграции:", err)
 	}
 
 	log.Println("✅ База данных PostgreSQL подключена и миграции выполнены!")

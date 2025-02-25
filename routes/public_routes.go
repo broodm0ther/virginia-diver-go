@@ -13,8 +13,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var secretKey = []byte("super-secret-key")
-
 // Регистрация пользователя (с хешированием пароля)
 func RegisterUser(c *fiber.Ctx) error {
 	var newUser models.User
@@ -122,51 +120,6 @@ func GenerateToken(userID uint) (string, error) {
 	return token.SignedString(secretKey)
 }
 
-// Middleware для аутентификации через JWT
-func AuthMiddleware() fiber.Handler {
-	return func(c *fiber.Ctx) error {
-		authHeader := c.Get("Authorization")
-
-		// Проверяем наличие заголовка Authorization
-		if authHeader == "" {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Токен отсутствует"})
-		}
-
-		// Убираем "Bearer " из строки токена
-		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
-		if tokenString == authHeader {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Неверный формат токена"})
-		}
-
-		// Парсим токен
-		claims := jwt.MapClaims{}
-		token, err := jwt.ParseWithClaims(tokenString, &claims, func(token *jwt.Token) (interface{}, error) {
-			return secretKey, nil
-		})
-
-		if err != nil || !token.Valid {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Недействительный токен"})
-		}
-
-		// Извлекаем ID пользователя
-		userIDFloat, ok := claims["user_id"].(float64)
-		if !ok {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Ошибка токена"})
-		}
-		userID := uint(userIDFloat)
-
-		// Получаем пользователя из базы
-		var user models.User
-		if err := database.DB.First(&user, userID).Error; err != nil {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Пользователь не найден"})
-		}
-
-		// Добавляем пользователя в контекст
-		c.Locals("user", user)
-		return c.Next()
-	}
-}
-
 // Получение профиля пользователя
 func GetProfile(c *fiber.Ctx) error {
 	user := c.Locals("user").(models.User)
@@ -174,6 +127,7 @@ func GetProfile(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"username": user.Username,
 		"email":    user.Email,
+		"avatar":   user.Avatar,
 	})
 }
 
