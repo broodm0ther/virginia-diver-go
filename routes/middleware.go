@@ -30,13 +30,20 @@ func AuthMiddleware() fiber.Handler {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Недействительный токен"})
 		}
 
-		userID := uint(claims["user_id"].(float64))
+		// 🧠 Безопасное извлечение user_id
+		userIDFloat, ok := claims["user_id"].(float64)
+		if !ok {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Некорректный токен (user_id)"})
+		}
+		userID := int(userIDFloat)
+
 		var user models.User
 		if err := database.DB.First(&user, userID).Error; err != nil {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Пользователь не найден"})
 		}
 
 		c.Locals("user", user)
+		c.Locals("user_id", userID) // ✅ Добавлено
 		return c.Next()
 	}
 }

@@ -128,6 +128,7 @@ func GetProfile(c *fiber.Ctx) error {
 		"username": user.Username,
 		"email":    user.Email,
 		"avatar":   user.Avatar,
+		"role":     user.Role,
 	})
 }
 
