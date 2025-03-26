@@ -20,8 +20,8 @@ func ConnectDatabase() {
 		log.Fatal("❌ Ошибка подключения к базе данных:", err)
 	}
 
-	// ✅ Миграция с полем `Avatar`
-	if err := DB.AutoMigrate(&models.User{}); err != nil {
+	// ✅ Миграции моделей User и Product
+	if err := DB.AutoMigrate(&models.User{}, &models.Product{}); err != nil {
 		log.Fatal("❌ Ошибка при миграции:", err)
 	}
 
