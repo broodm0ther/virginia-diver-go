@@ -12,7 +12,6 @@ import (
 
 var secretKey = []byte("super-secret-key")
 
-// ✅ Единственный экземпляр `AuthMiddleware`
 func AuthMiddleware() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		authHeader := c.Get("Authorization")

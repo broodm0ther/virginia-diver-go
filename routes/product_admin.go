@@ -1,4 +1,3 @@
-// routes/product_admin.go
 package routes
 
 import (
@@ -18,6 +17,16 @@ func GetPendingProducts(c *fiber.Ctx) error {
 	var products []models.Product
 	if err := database.DB.Where("status = ?", "pending").Find(&products).Error; err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": "Ошибка при получении объявлений"})
+	}
+
+	return c.JSON(fiber.Map{"products": products})
+}
+
+func GetApprovedProducts(c *fiber.Ctx) error {
+	var products []models.Product
+
+	if err := database.DB.Where("status = ?", "approved").Find(&products).Error; err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Ошибка получения товаров"})
 	}
 
 	return c.JSON(fiber.Map{"products": products})
