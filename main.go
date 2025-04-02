@@ -11,18 +11,19 @@ import (
 )
 
 func main() {
-	// 📥 Загружаем переменные из .env
 	if err := godotenv.Load(); err != nil {
 		log.Println("⚠️ .env не найден или не загружен")
 	}
 
-	// 📡 Подключение к базе данных
 	database.ConnectDatabase()
 
 	app := fiber.New()
 
 	// 🖼 Статические файлы
 	app.Static("/uploads/", "./uploads")
+
+	// 📦 WebSocket чат
+	routes.SetupChatRoutes(app)
 
 	// 📦 Группа авторизации и аккаунта
 	authGroup := app.Group("/api/auth")
@@ -35,7 +36,7 @@ func main() {
 	authGroup.Post("/update-profile", routes.AuthMiddleware(), routes.UpdateProfile)
 	authGroup.Post("/logout", routes.LogoutUser)
 	authGroup.Post("/set-role", routes.AuthMiddleware(), routes.SetUserRole)
-	authGroup.Get("/all-users", routes.AuthMiddleware(), routes.GetAllUsers)
+	authGroup.Get("/all-users", routes.AuthMiddleware(), routes.GetAllUsers) // 🔒 для админки
 
 	// 📦 Группа товаров
 	productGroup := app.Group("/api/products", routes.AuthMiddleware())
@@ -43,11 +44,16 @@ func main() {
 	productGroup.Post("/approve/:id", routes.ApproveProduct)
 	productGroup.Post("/reject/:id", routes.RejectProduct)
 
-	// ✅ Одобренные товары — доступны всем
+	// ✅ Одобренные товары
 	app.Get("/api/products/approved", routes.GetApprovedProducts)
 
+	// 🌍 Публичный маршрут получения юзеров
+	app.Get("/api/public/users", routes.GetAllUsersPublic)
+
+	app.Get("/api/public/chat-partners", routes.GetUserChatPartners)
+
 	log.Println("🚀 Сервер запущен на порту 8080")
-	if err := app.Listen(":8080"); err != nil {
+	if err := app.Listen("0.0.0.0:8080"); err != nil {
 		log.Fatalf("❌ Ошибка при запуске сервера: %v", err)
 	}
 }

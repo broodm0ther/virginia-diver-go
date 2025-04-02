@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"kostya/database"
 	"kostya/models"
@@ -11,7 +12,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-// ✅ Обновление профиля (оставил как у тебя)
+// ✅ Обновление профиля
 func UpdateProfile(c *fiber.Ctx) error {
 	fmt.Println("📥 Получен запрос на обновление профиля")
 
@@ -41,7 +42,6 @@ func UpdateProfile(c *fiber.Ctx) error {
 		fmt.Println("✅ Файл успешно сохранён:", filePath)
 	}
 
-	// 🔥 Обновляем профиль пользователя в базе данных
 	userID := c.Locals("user_id").(int)
 	query := "UPDATE users SET username=?, region=?, bio=?, avatar=? WHERE id=?"
 	err = database.DB.Exec(query, username, region, bio, avatarPath, userID).Error
@@ -53,7 +53,7 @@ func UpdateProfile(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"message": "Профиль обновлён", "avatar": avatarPath})
 }
 
-// ✅ Эндпоинт: установить роль пользователю (только админ)
+// ✅ Установить роль (только админ)
 func SetUserRole(c *fiber.Ctx) error {
 	adminID := c.Locals("user_id").(int)
 
@@ -78,7 +78,35 @@ func SetUserRole(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"message": "Роль успешно обновлена"})
 }
 
-// ✅ Эндпоинт: получить всех пользователей (для админа)
+// ✅ Публично: получить всех пользователей
+func GetAllUsersPublic(c *fiber.Ctx) error {
+	search := c.Query("search", "")
+	var users []models.User
+
+	query := database.DB.Model(&models.User{})
+
+	if search != "" {
+		query = query.Where("username ILIKE ?", "%"+search+"%")
+	}
+
+	if err := query.Find(&users).Error; err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Ошибка получения пользователей"})
+	}
+
+	var cleanUsers []map[string]interface{}
+	for _, u := range users {
+		cleanUsers = append(cleanUsers, map[string]interface{}{
+			"id":       u.ID,
+			"username": u.Username,
+			"email":    u.Email,
+			"avatar":   u.Avatar,
+		})
+	}
+
+	return c.JSON(cleanUsers)
+}
+
+// ✅ Только для админа: получить всех пользователей
 func GetAllUsers(c *fiber.Ctx) error {
 	userIDInterface := c.Locals("user_id")
 	if userIDInterface == nil {
@@ -110,4 +138,55 @@ func GetAllUsers(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{"users": cleanUsers})
+}
+
+// ✅ Получить всех пользователей, с кем был чат
+func GetUserChatPartners(c *fiber.Ctx) error {
+	user := c.Query("user", "")
+	if user == "" {
+		return c.Status(400).JSON(fiber.Map{"error": "Не передан юзер"})
+	}
+
+	var messages []models.ChatMessage
+	if err := database.DB.
+		Where("\"user\" = ? OR room LIKE ?", user, "%"+user+"%").
+		Order("created_at desc").
+		Find(&messages).Error; err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Ошибка при получении чатов"})
+	}
+
+	unique := map[string]bool{}
+	users := []string{}
+
+	for _, msg := range messages {
+		parts := strings.Split(msg.Room, "_")
+		for _, u := range parts {
+			if u != user && !unique[u] {
+				unique[u] = true
+				users = append(users, u)
+			}
+		}
+	}
+
+	if len(users) == 0 {
+		// 🛠 Возвращаем ПУСТОЙ массив, а не null
+		return c.JSON([]interface{}{})
+	}
+
+	var found []models.User
+	if err := database.DB.Where("username IN ?", users).Find(&found).Error; err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Ошибка при получении пользователей"})
+	}
+
+	var response []map[string]interface{}
+	for _, u := range found {
+		response = append(response, map[string]interface{}{
+			"id":       u.ID,
+			"username": u.Username,
+			"email":    u.Email,
+			"avatar":   u.Avatar,
+		})
+	}
+
+	return c.JSON(response)
 }
