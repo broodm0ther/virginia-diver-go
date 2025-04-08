@@ -14,10 +14,11 @@ func main() {
 	if err := godotenv.Load(); err != nil {
 		log.Println("⚠️ .env не найден или не загружен")
 	}
-
 	database.ConnectDatabase()
 
-	app := fiber.New()
+	app := fiber.New(fiber.Config{
+		BodyLimit: 50 * 1024 * 1024, // 50MB
+	})
 
 	// 🖼 Статические файлы
 	app.Static("/uploads/", "./uploads")
@@ -49,7 +50,6 @@ func main() {
 
 	// 🌍 Публичный маршрут получения юзеров
 	app.Get("/api/public/users", routes.GetAllUsersPublic)
-
 	app.Get("/api/public/chat-partners", routes.GetUserChatPartners)
 
 	log.Println("🚀 Сервер запущен на порту 8080")
