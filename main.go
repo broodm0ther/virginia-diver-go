@@ -40,10 +40,15 @@ func main() {
 	authGroup.Get("/all-users", routes.AuthMiddleware(), routes.GetAllUsers) // 🔒 для админки
 
 	// 📦 Группа товаров
+	// 📦 Публичный маршрут для approved товаров (гостям доступен)
+	app.Get("/api/products/approved", routes.GetApprovedProducts)
+
 	productGroup := app.Group("/api/products", routes.AuthMiddleware())
 	productGroup.Get("/pending", routes.GetPendingProducts)
 	productGroup.Post("/approve/:id", routes.ApproveProduct)
 	productGroup.Post("/reject/:id", routes.RejectProduct)
+	productGroup.Post("/delete/:id", routes.DeleteProduct)
+	productGroup.Post("/add", routes.AddProduct) // 👈 ЭТОГО НЕ ХВАТАЛО!
 
 	// ✅ Одобренные товары
 	app.Get("/api/products/approved", routes.GetApprovedProducts)
