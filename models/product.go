@@ -3,7 +3,7 @@ package models
 import "gorm.io/gorm"
 
 type Product struct {
-	ID          uint    `json:"id"` // 👈 обязательно добавь
+	ID          uint    `json:"id"`
 	Title       string  `json:"title"`
 	Description string  `json:"description"`
 	Price       float64 `json:"price"`
@@ -15,5 +15,5 @@ type Product struct {
 	Status      string  `json:"status"`
 	UserID      uint    `json:"user_id"`
 	User        User    `json:"user" gorm:"foreignKey:UserID"`
-	gorm.Model          // 👈 можно оставить, но ID теперь будет явно
+	gorm.Model
 }

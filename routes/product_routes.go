@@ -10,6 +10,7 @@ import (
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 )
 
 func AddProduct(c *fiber.Ctx) error {
@@ -59,9 +60,11 @@ func AddProduct(c *fiber.Ctx) error {
 	}
 
 	for _, file := range files {
-		path := filepath.Join("uploads/products", file.Filename)
-		err := c.SaveFile(file, path)
-		if err != nil {
+		ext := filepath.Ext(file.Filename) // .jpg, .png и т.п.
+		uniqueName := uuid.New().String() + ext
+		path := filepath.Join("uploads/products", uniqueName)
+
+		if err := c.SaveFile(file, path); err != nil {
 			log.Println("❌ Ошибка сохранения файла:", err)
 			return c.Status(500).JSON(fiber.Map{"error": "Ошибка загрузки файлов"})
 		}
